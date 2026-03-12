@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ChatWebSocketService {
   WebSocketChannel? _channel;
   Function(Map<String, dynamic>)? onMessage;
+  VoidCallback? onReady;
 
   void connect(String url, String token) {
     print('Attempting to connect to WebSocket: $url');
@@ -14,8 +17,20 @@ class ChatWebSocketService {
       final webUri = uri.replace(
         queryParameters: {...uri.queryParameters, 'token': token},
       );
-      print('Running on WEB: Connecting via query param: $webUri');
+      print('Connecting via query param: $webUri');
       _channel = WebSocketChannel.connect(webUri);
+
+      // Wait for the connection to be ready before firing onReady.
+      _channel!.ready.then((_) {
+        print('WebSocket connection is ready.');
+        onReady?.call();
+      }).catchError((error) {
+        print('WebSocket ready error: $error');
+        onMessage?.call({
+          'event': 'error',
+          'data': {'message': 'Connection failed: $error'},
+        });
+      });
 
       _channel!.stream.listen(
         (data) {
@@ -52,6 +67,8 @@ class ChatWebSocketService {
       final payload = jsonEncode({'event': event, 'data': data});
       print('WebSocket Emitting: $payload');
       _channel!.sink.add(payload);
+    } else {
+      print('WebSocket: Cannot emit, channel is null.');
     }
   }
 

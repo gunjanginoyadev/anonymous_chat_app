@@ -23,26 +23,30 @@ class ChatProvider extends ChangeNotifier {
   ChatStatus status = ChatStatus.idle;
   List<ChatMessage> messages = [];
   String? chatId;
-  String? username;
+  String? partnerUsername;
   String? errorMessage;
 
-  // Change this to your server URL
-  static const String wsUrl = 'ws://192.168.1.40:3000';
+  /// The username of the connected partner (exposed for UI).
+  String? get username => partnerUsername;
 
   void startChat(String token) {
     print('Starting Chat flow...');
     status = ChatStatus.waiting;
     messages = [];
     chatId = null;
-    username = null;
+    partnerUsername = null;
     errorMessage = null;
-    notifyListeners();  
+    notifyListeners();
 
     _wsService.onMessage = _handleMessage;
-    _wsService.connect(ApiConstants.wsUrl, token);
 
-    // Initial event to enter waiting room
-    _wsService.emit(Endpoints.enterWaitingRoom, {});
+    // Only emit enter-waiting-room AFTER the socket connection is established.
+    _wsService.onReady = () {
+      print('Socket ready — emitting enter-waiting-room');
+      _wsService.emit(Endpoints.enterWaitingRoom, {});
+    };
+
+    _wsService.connect(ApiConstants.wsUrl, token);
   }
 
   void _handleMessage(Map<String, dynamic> message) {
@@ -51,35 +55,53 @@ class ChatProvider extends ChangeNotifier {
 
     switch (event) {
       case Endpoints.inWaitingRoom:
+        // Already set to waiting — no change needed, but refresh just in case.
         status = ChatStatus.waiting;
         notifyListeners();
         break;
 
       case Endpoints.inChat:
         chatId = data['chatId'] as String?;
-        username = data['partner']['username'] as String?;
+        partnerUsername = data['partner']?['username'] as String?;
         status = ChatStatus.chatting;
         notifyListeners();
         break;
 
-      case Endpoints.sendMessage:
-        // This is usually the echo back to the sender
-        _addMessage(data['message'] as String? ?? '', true);
-        break;
+      // The backend echoes the sender's own message back with event 'send-message'.
+      // We do NOT add it here because the sender already added it optimistically
+      // in sendMessage(). Handling it would cause duplicates.
+      // case Endpoints.sendMessage: intentionally omitted.
 
       case Endpoints.messageReceived:
+        // This is the event the RECEIVER gets when the sender sends a message.
         _addMessage(data['message'] as String? ?? '', false);
         break;
 
+      case Endpoints.partnerLeft:
+        _addMessage('🔌 Partner disconnected', false);
+        // Give the user a moment to read it, then return to home.
+        Future.delayed(const Duration(seconds: 2), () {
+          status = ChatStatus.idle;
+          messages = [];
+          chatId = null;
+          partnerUsername = null;
+          notifyListeners();
+        });
+        break;
+
       case Endpoints.error:
-        errorMessage = data['message'] as String? ?? 'An error occurred';
+        errorMessage = (message['message'] as String?) ??
+            (data['message'] as String?) ??
+            'An error occurred';
         notifyListeners();
         break;
 
       case 'connection_closed':
         if (status != ChatStatus.idle) {
-          _addMessage('🔌 Disconnected from chat', false);
           status = ChatStatus.idle;
+          messages = [];
+          chatId = null;
+          partnerUsername = null;
           notifyListeners();
         }
         break;
@@ -97,7 +119,14 @@ class ChatProvider extends ChangeNotifier {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty || chatId == null) return;
 
-    _wsService.emit(Endpoints.sendMessage, {'chatId': chatId, 'message': trimmedText});
+    // Optimistically add to local list so the sender sees it immediately.
+    _addMessage(trimmedText, true);
+
+    // Send to server — the backend will forward to the receiver.
+    _wsService.emit(Endpoints.sendMessage, {
+      'chatId': chatId,
+      'message': trimmedText,
+    });
   }
 
   void leaveChat() {
@@ -105,6 +134,7 @@ class ChatProvider extends ChangeNotifier {
     status = ChatStatus.idle;
     messages = [];
     chatId = null;
+    partnerUsername = null;
     notifyListeners();
   }
 
