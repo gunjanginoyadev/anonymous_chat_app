@@ -70,8 +70,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
             ),
-            const Text(
-              'Stranger',
+            Text(
+              context.read<ChatProvider>().username ?? 'Stranger',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
