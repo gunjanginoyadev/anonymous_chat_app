@@ -23,6 +23,7 @@ class ChatProvider extends ChangeNotifier {
   ChatStatus status = ChatStatus.idle;
   List<ChatMessage> messages = [];
   String? chatId;
+  String? username;
   String? errorMessage;
 
   // Change this to your server URL
@@ -33,6 +34,7 @@ class ChatProvider extends ChangeNotifier {
     status = ChatStatus.waiting;
     messages = [];
     chatId = null;
+    username = null;
     errorMessage = null;
     notifyListeners();  
 
@@ -55,6 +57,7 @@ class ChatProvider extends ChangeNotifier {
 
       case Endpoints.inChat:
         chatId = data['chatId'] as String?;
+        username = data['partner']['username'] as String?;
         status = ChatStatus.chatting;
         notifyListeners();
         break;
