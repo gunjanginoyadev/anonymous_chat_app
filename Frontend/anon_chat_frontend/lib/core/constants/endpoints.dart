@@ -12,4 +12,5 @@ class Endpoints {
   static const String messageReceived = 'message-received';
   static const String partnerLeft = 'partner-left';
   static const String error = 'error';
+  static const String typing = 'typing';
 }

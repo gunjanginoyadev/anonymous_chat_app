@@ -1,13 +1,14 @@
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/router/app_router.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback onGoToRegister;
-
-  const LoginScreen({super.key, required this.onGoToRegister});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -77,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.setOpacity(0.4),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -187,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           GestureDetector(
-            onTap: widget.onGoToRegister,
+            onTap: () => context.go(AppRoutes.register),
             child: const Text(
               'Create one',
               style: TextStyle(

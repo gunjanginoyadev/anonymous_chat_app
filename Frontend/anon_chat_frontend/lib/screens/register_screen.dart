@@ -1,13 +1,14 @@
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/router/app_router.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
-  final VoidCallback onGoToLogin;
-
-  const RegisterScreen({super.key, required this.onGoToLogin});
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -85,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.setOpacity(0.4),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -127,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 6),
         const Text(
           'Join and start meeting strangers',
-          style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -226,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           GestureDetector(
-            onTap: widget.onGoToLogin,
+            onTap: () => context.go(AppRoutes.login),
             child: const Text(
               'Sign in',
               style: TextStyle(

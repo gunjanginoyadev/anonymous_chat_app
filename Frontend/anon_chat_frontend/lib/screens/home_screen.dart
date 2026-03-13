@@ -1,3 +1,4 @@
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
@@ -24,8 +25,6 @@ class HomeScreen extends StatelessWidget {
                 _buildTagline(),
                 const SizedBox(height: 64),
                 _buildStartButton(context),
-                const SizedBox(height: 24),
-                _buildDisclaimer(),
               ],
             ),
           ),
@@ -50,7 +49,7 @@ class HomeScreen extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.4),
+                color: AppColors.primary.setOpacity(0.4),
                 blurRadius: 32,
                 spreadRadius: 4,
               ),
@@ -83,7 +82,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildTagline() {
     return const Text(
-      'Talk to a stranger.\nNo names. No history. Just conversation.',
+      'Talk to a stranger. Just conversation.',
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: 16,
@@ -112,7 +111,7 @@ class HomeScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
+              color: AppColors.primary.setOpacity(0.35),
               blurRadius: 24,
               spreadRadius: 0,
               offset: const Offset(0, 8),
@@ -139,13 +138,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDisclaimer() {
-    return const Text(
-      'Anonymous · No registration · No logs',
-      style: const TextStyle(fontSize: 12, color: AppColors.hint),
-    );
-  }
-
   Widget _buildUserChip(BuildContext context, AuthProvider auth) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -160,18 +152,10 @@ class HomeScreen extends StatelessWidget {
           Container(
             width: 26,
             height: 26,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(colors: AppColors.primaryGradient),
-            ),
-            child: Center(
-              child: Text(
-                (auth.user?.name ?? 'U')[0].toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+              image: DecorationImage(
+                image: NetworkImage(auth.user?.profilePic ?? ''),
               ),
             ),
           ),

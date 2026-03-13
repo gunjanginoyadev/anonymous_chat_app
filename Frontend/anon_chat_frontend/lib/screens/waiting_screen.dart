@@ -1,3 +1,4 @@
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
@@ -58,7 +59,7 @@ class _WaitingScreenState extends State<WaitingScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.5),
+                      color: AppColors.primary.setOpacity(0.5),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),

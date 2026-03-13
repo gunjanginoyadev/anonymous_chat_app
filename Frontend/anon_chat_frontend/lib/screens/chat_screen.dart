@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
@@ -13,18 +16,54 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  Timer? _typingStopTimer;
+  bool _hasSentTypingTrue = false;
+
+  static const _typingStopDelay = Duration(seconds: 2);
 
   @override
   void dispose() {
+    _typingStopTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  void _onTextChanged(ChatProvider provider, String text) {
+    if (provider.chatId == null) return;
+
+    final hasContent = text.trim().isNotEmpty;
+
+    if (hasContent) {
+      if (!_hasSentTypingTrue) {
+        _hasSentTypingTrue = true;
+        provider.setTyping(true);
+      }
+    } else {
+      _typingStopTimer?.cancel();
+      if (_hasSentTypingTrue) {
+        _hasSentTypingTrue = false;
+        provider.setTyping(false);
+      }
+      return;
+    }
+
+    _typingStopTimer?.cancel();
+    _typingStopTimer = Timer(_typingStopDelay, () {
+      _hasSentTypingTrue = false;
+      provider.setTyping(false);
+    });
+  }
+
   void _sendMessage(ChatProvider provider) {
     final text = _controller.text;
     if (text.trim().isEmpty) return;
+    _typingStopTimer?.cancel();
+    if (_hasSentTypingTrue) {
+      _hasSentTypingTrue = false;
+      provider.setTyping(false);
+    }
     provider.sendMessage(text);
     _controller.clear();
     _focusNode.requestFocus();
@@ -54,28 +93,17 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 0,
         title: Row(
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF3ECFCF),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF3ECFCF),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              context.read<ChatProvider>().username ?? 'Stranger',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            _PartnerAvatar(profilePicture: provider.partnerProfilePicture),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                provider.username ?? 'Stranger',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -157,6 +185,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
           ),
+          if (provider.partnerIsTyping)
+            const Padding(
+              padding: EdgeInsets.only(left: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TypingIndicatorBubble(),
+              ),
+            ),
           _buildInputBar(provider),
         ],
       ),
@@ -177,6 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
               controller: _controller,
               focusNode: _focusNode,
               style: const TextStyle(color: Colors.white, fontSize: 15),
+              onChanged: (text) => _onTextChanged(provider, text),
               onSubmitted: (_) => _sendMessage(provider),
               decoration: InputDecoration(
                 hintText: 'Type a message...',
@@ -214,7 +251,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6C63FF).withOpacity(0.4),
+                    color: const Color(0xFF6C63FF).setOpacity(0.4),
                     blurRadius: 12,
                     spreadRadius: 0,
                   ),
@@ -228,6 +265,161 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Partner avatar in app bar: profile picture or fallback dot.
+class _PartnerAvatar extends StatelessWidget {
+  final String? profilePicture;
+
+  const _PartnerAvatar({this.profilePicture});
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 36.0;
+    if (profilePicture != null && profilePicture!.isNotEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF2E2E4E), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF3ECFCF).withOpacity(0.25),
+              blurRadius: 8,
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.network(
+          profilePicture!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const _AvatarFallback(),
+        ),
+      );
+    }
+    return const SizedBox(
+      width: size,
+      height: size,
+      child: _AvatarFallback(),
+    );
+  }
+}
+
+class _AvatarFallback extends StatelessWidget {
+  const _AvatarFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFF3ECFCF),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF3ECFCF),
+            blurRadius: 6,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: const Icon(Icons.person_rounded, color: Colors.white24, size: 20),
+    );
+  }
+}
+
+/// Curve that goes 0 → 1 → 0 over [0, 1] for a single bounce.
+class _BounceUpDownCurve extends Curve {
+  @override
+  double transformInternal(double t) {
+    if (t <= 0.5) return 2 * t;
+    return 2 * (1 - t);
+  }
+}
+
+/// iMessage-style typing indicator: three bouncing dots in a bubble.
+class TypingIndicatorBubble extends StatefulWidget {
+  const TypingIndicatorBubble({super.key});
+
+  @override
+  State<TypingIndicatorBubble> createState() => _TypingIndicatorBubbleState();
+}
+
+class _TypingIndicatorBubbleState extends State<TypingIndicatorBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<Animation<double>> _dotOffsets;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+
+    // Each dot bounces up then down in its segment (iMessage-style)
+    const segment = 1 / 3;
+    _dotOffsets = List.generate(3, (i) {
+      return Tween<double>(begin: 0, end: -6).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(
+            i * segment,
+            (i + 1) * segment,
+            curve: _BounceUpDownCurve(),
+          ),
+        ),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(18),
+          topRight: const Radius.circular(18),
+          bottomLeft: const Radius.circular(4),
+          bottomRight: const Radius.circular(18),
+        ),
+        border: Border.all(color: const Color(0xFF2E2E4E)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(3, (i) {
+          return AnimatedBuilder(
+            animation: _dotOffsets[i],
+            builder: (_, child) {
+              return Transform.translate(
+                offset: Offset(0, _dotOffsets[i].value),
+                child: child,
+              );
+            },
+            child: Container(
+              width: 8,
+              height: 8,
+              margin: EdgeInsets.only(right: i < 2 ? 6 : 0),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF8888AA),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -287,7 +479,7 @@ class _MessageBubble extends StatelessWidget {
           boxShadow: message.isMe
               ? [
                   BoxShadow(
-                    color: const Color(0xFF6C63FF).withOpacity(0.3),
+                    color: const Color(0xFF6C63FF).setOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),

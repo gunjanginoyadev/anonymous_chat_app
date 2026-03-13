@@ -2,29 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/constants/endpoints.dart';
+import '../core/router/router_refresh_notifier.dart';
 
 enum AuthStatus { unauthenticated, loading, authenticated }
 
 class AuthUser {
   final String id;
   final String name;
+  final String profilePic;
   final String email;
   final String token;
 
   AuthUser({
     required this.id,
     required this.name,
+    required this.profilePic,
     required this.email,
     required this.token,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic>? json, String token) {
     if (json == null) {
-      return AuthUser(id: '', name: 'Unknown', email: '', token: token);
+      return AuthUser(id: '', name: 'Unknown', email: '', token: token, profilePic: '');
     }
     return AuthUser(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       name: json['name'] as String? ?? 'User',
+      profilePic: json['profilePicture'] as String? ?? '',
       email: json['email'] as String? ?? '',
       token: token,
     );
@@ -32,7 +36,16 @@ class AuthUser {
 }
 
 class AuthProvider extends ChangeNotifier {
+  AuthProvider({RouterRefreshNotifier? routerRefresh})
+      : _routerRefresh = routerRefresh;
+
   final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final RouterRefreshNotifier? _routerRefresh;
+
+  void _notify() {
+    notifyListeners();
+    _routerRefresh?.refresh();
+  }
 
   AuthStatus status = AuthStatus.unauthenticated;
   AuthUser? user;
@@ -43,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     status = AuthStatus.loading;
     errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final response = await _dio.post(
@@ -65,12 +78,12 @@ class AuthProvider extends ChangeNotifier {
 
         user = AuthUser.fromJson(userData, token);
         status = AuthStatus.authenticated;
-        notifyListeners();
+        _notify();
         return true;
       } else {
         errorMessage = result['message'] ?? 'Login failed. Please check your credentials.';
         status = AuthStatus.unauthenticated;
-        notifyListeners();
+        _notify();
         return false;
       }
     } catch (e) {
@@ -82,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> register(String name, String email, String password) async {
     status = AuthStatus.loading;
     errorMessage = null;
-    notifyListeners();
+    _notify();
 
     try {
       final response = await _dio.post(
@@ -104,12 +117,12 @@ class AuthProvider extends ChangeNotifier {
 
         user = AuthUser.fromJson(userData, token);
         status = AuthStatus.authenticated;
-        notifyListeners();
+        _notify();
         return true;
       } else {
         errorMessage = result['message'] ?? 'Registration failed. Please try again.';
         status = AuthStatus.unauthenticated;
-        notifyListeners();
+        _notify();
         return false;
       }
     } catch (e) {
@@ -134,18 +147,18 @@ class AuthProvider extends ChangeNotifier {
       errorMessage = 'An unexpected error occurred: ${e.toString()}';
     }
     status = AuthStatus.unauthenticated;
-    notifyListeners();
+    _notify();
   }
 
   void logout() {
     user = null;
     status = AuthStatus.unauthenticated;
     errorMessage = null;
-    notifyListeners();
+    _notify();
   }
 
   void clearError() {
     errorMessage = null;
-    notifyListeners();
+    _notify();
   }
 }
