@@ -15,8 +15,8 @@ class WaitingQueue {
     return this.queue.length;
   }
 
-  hasUser(user) {
-  return this.queue.some((item) => item.user === user);
+  hasUser(userId) {
+    return this.queue.some((item) => item.user.id.toString() === userId.toString());
   }
 
   removeBySocket(socket) {

@@ -43,9 +43,7 @@ function eventRouter(ws, message) {
         );
       }
 
-      ws.userId = userId;
-
-      WaitingQueue.enqueue(userId, ws);
+      WaitingQueue.enqueue({ id: userId, username: ws.username, profilePicture: ws.profilePicture }, ws);
 
       if (WaitingQueue.size() >= 2) {
         const user1 = WaitingQueue.dequeue();
@@ -53,17 +51,36 @@ function eventRouter(ws, message) {
 
         const chatId = ChatRoom.createChat(user1, user2);
 
-        const payload = JSON.stringify({
+        const payload1 = JSON.stringify({
           event: SocketEvents.InTheChat,
-          data: { chatId },
+          data: {
+            chatId,
+            partner: {
+              userId: user2.user.id,
+              username: user2.user.username,
+              profilePicture: user2.user.profilePicture,
+            },
+          },
+        });
+
+        const payload2 = JSON.stringify({
+          event: SocketEvents.InTheChat,
+          data: {
+            chatId,
+            partner: {
+              userId: user1.user.id,
+              username: user1.user.username,
+              profilePicture: user1.user.profilePicture,
+            },
+          },
         });
 
         if (user1.socket.readyState === 1) {
-          user1.socket.send(payload);
+          user1.socket.send(payload1);
         }
 
         if (user2.socket.readyState === 1) {
-          user2.socket.send(payload);
+          user2.socket.send(payload2);
         }
       } else {
         ws.send(
@@ -104,7 +121,7 @@ function eventRouter(ws, message) {
         );
       }
 
-      const isUser1 = chat.user1.user.toString() === userId.toString();
+      const isUser1 = chat.user1.user.id.toString() === userId.toString();
 
       const sender = isUser1 ? chat.user1 : chat.user2;
       const receiver = isUser1 ? chat.user2 : chat.user1;
@@ -127,6 +144,50 @@ function eventRouter(ws, message) {
           JSON.stringify({
             event: SocketEvents.MessageReceived,
             data: { chatId, message },
+          }),
+        );
+      }
+
+      break;
+    }
+
+    case SocketEvents.Typing: {
+      const { chatId, isTyping } = body.data || {};
+      const userId = ws.userId;
+
+      if (!userId) {
+        return ws.send(
+          JSON.stringify({
+            event: SocketEvents.Error,
+            message: "Unauthorized socket",
+          }),
+        );
+      }
+
+      const chat = ChatRoom.getChat(chatId);
+
+      if (!chat) {
+        return ws.send(
+          JSON.stringify({
+            event: SocketEvents.Error,
+            message: "Invalid chatId",
+          }),
+        );
+      }
+
+      const isUser1 = chat.user1.user.id.toString() === userId.toString();
+
+      const receiver = isUser1 ? chat.user2 : chat.user1;
+
+      if (!receiver) {
+        return;
+      }
+
+      if (receiver.socket.readyState === 1) {
+        receiver.socket.send(
+          JSON.stringify({
+            event: SocketEvents.Typing,
+            data: { chatId, isTyping },
           }),
         );
       }
