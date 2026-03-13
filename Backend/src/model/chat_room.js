@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+const SocketEvents = require("../config/socket_events");
 
 class ChatRoom {
   constructor() {
@@ -33,7 +34,7 @@ class ChatRoom {
         if (otherUser.socket.readyState === 1) {
           otherUser.socket.send(
             JSON.stringify({
-              event: "partner-left",
+              event: SocketEvents.PartnerLeft,
               message: "Partner disconnected",
             }),
           );

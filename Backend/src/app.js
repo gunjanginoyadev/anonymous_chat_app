@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const app = express();
 
+// frontend: https://anonymous-chat-app-frontend-hrtx.onrender.com/
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
