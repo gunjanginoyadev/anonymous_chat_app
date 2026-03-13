@@ -1,3 +1,4 @@
+import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 
@@ -144,7 +145,7 @@ class _GradientButtonState extends State<GradientButton> {
             gradient: const LinearGradient(colors: AppColors.primaryGradient),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(_hovered ? 0.5 : 0.3),
+                color: AppColors.primary.setOpacity(_hovered ? 0.5 : 0.3),
                 blurRadius: _hovered ? 28 : 16,
                 offset: const Offset(0, 4),
               ),
@@ -188,7 +189,7 @@ class AuthErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.errorBackground,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.error.withOpacity(0.4)),
+        border: Border.all(color: AppColors.error.setOpacity(0.4)),
       ),
       child: Row(
         children: [
