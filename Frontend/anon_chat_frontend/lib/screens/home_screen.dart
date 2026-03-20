@@ -97,8 +97,8 @@ class HomeScreen extends StatelessWidget {
     final auth = context.read<AuthProvider>();
     return GestureDetector(
       onTap: () {
-        final token = auth.user?.token;
-        if (token != null) {
+        final token = auth.user?.token ?? '';
+        if (token.trim().isNotEmpty) {
           context.read<ChatProvider>().startChat(token);
         }
       },

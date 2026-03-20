@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -10,6 +9,13 @@ class ChatWebSocketService {
 
   void connect(String url, String token) {
     print('Attempting to connect to WebSocket: $url');
+    if (token.trim().isEmpty) {
+      onMessage?.call({
+        'event': 'error',
+        'data': {'message': 'Socket token is empty'},
+      });
+      return;
+    }
     try {
       final uri = Uri.parse(url);
       // Browsers DO NOT support custom headers (Authorization) for WebSockets.
@@ -43,7 +49,9 @@ class ChatWebSocketService {
           }
         },
         onDone: () {
-          print('WebSocket Connection Closed');
+          print(
+            'WebSocket Connection Closed. code=${_channel?.closeCode}, reason=${_channel?.closeReason}',
+          );
           onMessage?.call({'event': 'connection_closed'});
         },
         onError: (error) {
