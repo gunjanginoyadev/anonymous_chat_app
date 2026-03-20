@@ -8,4 +8,5 @@ class Env {
   // Development
   static String apiBaseUrl = 'https://anon-chat-t3qs.onrender.com';
   static String wsUrl = 'wss://anon-chat-t3qs.onrender.com';
+
 }
