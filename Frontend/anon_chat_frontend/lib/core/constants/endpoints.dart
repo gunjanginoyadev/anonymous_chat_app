@@ -10,6 +10,8 @@ class Endpoints {
   static const String inChat = 'in-chat';
   static const String sendMessage = 'send-message';
   static const String messageReceived = 'message-received';
+  static const String toggleReaction = 'toggle-reaction';
+  static const String messageReactionUpdated = 'message-reaction-updated';
   static const String partnerLeft = 'partner-left';
   static const String error = 'error';
   static const String typing = 'typing';

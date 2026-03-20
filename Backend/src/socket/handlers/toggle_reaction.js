@@ -2,8 +2,8 @@ const SocketEvents = require("../../config/socket_events");
 const ChatRoom = require("../../model/chat_room");
 const { sendEvent, sendError } = require("../socket_response");
 
-function handleSendMessage(ws, data) {
-  const { chatId, message } = data || {};
+function handleToggleReaction(ws, data) {
+  const { chatId, messageId, emoji } = data || {};
   const userId = ws.userId;
 
   if (!userId) {
@@ -20,29 +20,25 @@ function handleSendMessage(ws, data) {
   const isUser1 = chat.user1.user.id.toString() === userId.toString();
   const sender = isUser1 ? chat.user1 : chat.user2;
   const receiver = isUser1 ? chat.user2 : chat.user1;
-
   if (!sender || !receiver) return;
 
-  const messageEntry = ChatRoom.addMessage(chatId, {
-    senderId: userId,
-    message,
-  });
-  if (!messageEntry) {
-    sendError(ws, "Unable to send message");
+  const update = ChatRoom.toggleReaction(chatId, messageId, userId, emoji);
+  if (!update) {
+    sendError(ws, "Invalid messageId");
     return;
   }
 
   const payload = {
     chatId,
-    messageId: messageEntry.id,
-    senderId: messageEntry.senderId,
-    message: messageEntry.message,
-    timestamp: messageEntry.timestamp,
-    reactions: messageEntry.reactions,
+    messageId: update.messageId,
+    emoji: update.emoji,
+    userId: update.userId,
+    action: update.action,
+    reactions: update.reactions,
   };
 
-  sendEvent(sender.socket, SocketEvents.SendMessage, payload);
-  sendEvent(receiver.socket, SocketEvents.MessageReceived, payload);
+  sendEvent(sender.socket, SocketEvents.MessageReactionUpdated, payload);
+  sendEvent(receiver.socket, SocketEvents.MessageReactionUpdated, payload);
 }
 
-module.exports = handleSendMessage;
+module.exports = handleToggleReaction;
