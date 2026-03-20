@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/router/router_refresh_notifier.dart';
+import 'core/widgets/app_feedback_listener.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
 
@@ -27,6 +28,9 @@ void main() async {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         routerConfig: appRouter,
+        builder: (context, child) => AppFeedbackListener(
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     ),
   );

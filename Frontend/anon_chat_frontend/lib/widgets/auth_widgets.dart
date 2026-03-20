@@ -28,6 +28,7 @@ class AuthTextField extends StatefulWidget {
 
 class _AuthTextFieldState extends State<AuthTextField> {
   bool _showPassword = false;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,65 +45,90 @@ class _AuthTextFieldState extends State<AuthTextField> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: widget.controller,
-          obscureText: widget.obscure && !_showPassword,
-          keyboardType: widget.keyboardType,
-          validator: widget.validator,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: const TextStyle(color: AppColors.hint, fontSize: 15),
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(
-                    widget.prefixIcon,
-                    color: AppColors.textSecondary,
-                    size: 18,
-                  )
-                : null,
-            suffixIcon: widget.obscure
-                ? IconButton(
-                    icon: Icon(
-                      _showPassword
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: AppColors.textSecondary,
-                      size: 18,
-                    ),
-                    onPressed: () =>
-                        setState(() => _showPassword = !_showPassword),
-                  )
-                : null,
-            filled: true,
-            fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
+        MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderSecondary),
+              boxShadow: [
+                if (_hovered)
+                  BoxShadow(
+                    color: AppColors.primary.setOpacity(0.12),
+                    blurRadius: 16,
+                    spreadRadius: 0,
+                  ),
+              ],
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderSecondary),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
+            child: TextFormField(
+              controller: widget.controller,
+              obscureText: widget.obscure && !_showPassword,
+              keyboardType: widget.keyboardType,
+              validator: widget.validator,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: const TextStyle(color: AppColors.hint, fontSize: 15),
+                prefixIcon: widget.prefixIcon != null
+                    ? Icon(
+                        widget.prefixIcon,
+                        color: AppColors.textSecondary,
+                        size: 18,
+                      )
+                    : null,
+                suffixIcon: widget.obscure
+                    ? IconButton(
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: AppColors.textSecondary,
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.borderSecondary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.borderSecondary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.error),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: AppColors.error, width: 1.5),
+                ),
+                errorStyle: const TextStyle(
+                  color: AppColors.error,
+                  fontSize: 12.5,
+                  height: 1.2,
+                ),
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-            ),
-            errorStyle: const TextStyle(color: AppColors.error),
           ),
         ),
       ],

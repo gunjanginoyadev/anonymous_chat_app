@@ -187,6 +187,11 @@ class ChatProvider extends ChangeNotifier {
     _notify();
   }
 
+  void clearError() {
+    errorMessage = null;
+    _notify();
+  }
+
   @override
   void dispose() {
     _wsService.disconnect();

@@ -10,6 +10,9 @@ import '../../screens/register_screen.dart';
 import '../../screens/waiting_screen.dart';
 import 'router_refresh_notifier.dart';
 
+final GlobalKey<NavigatorState> appNavigatorKey =
+    GlobalKey<NavigatorState>();
+
 /// Central route path constants for type-safe, scalable navigation.
 abstract final class AppRoutes {
   static const String login = '/login';
@@ -22,6 +25,7 @@ abstract final class AppRoutes {
 /// Builds the app [GoRouter] with auth and chat redirect logic.
 GoRouter createAppRouter(RouterRefreshNotifier refreshNotifier) {
   return GoRouter(
+    navigatorKey: appNavigatorKey,
     initialLocation: '/login',
     refreshListenable: refreshNotifier,
     redirect: (BuildContext context, GoRouterState state) {
