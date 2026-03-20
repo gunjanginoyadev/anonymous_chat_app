@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:anon_chat_frontend/core/extensions/color_extensions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final FocusNode _focusNode = FocusNode();
   Timer? _typingStopTimer;
   bool _hasSentTypingTrue = false;
+  String? _activeReactionMessageId;
 
   static const _typingStopDelay = Duration(seconds: 2);
 
@@ -132,12 +135,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: const Text(
                         'Stay',
                         style: TextStyle(color: Color(0xFF6C63FF)),
-                      ),
+                      ),  
                     ),
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        provider.leaveChat();
+                        provider.leaveChat(); 
                       },
                       child: const Text(
                         'Leave',
@@ -161,44 +164,78 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: provider.messages.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Say hello! 👋',
-                      style: TextStyle(color: Color(0xFF44445A), fontSize: 16),
+      body: GestureDetector(
+        // Let taps on message bubbles / emoji tray hit children first; only
+        // empty areas of the scaffold body dismiss the reaction picker.
+        behavior: HitTestBehavior.deferToChild,
+        onTap: () {
+          if (_activeReactionMessageId != null) {
+            setState(() => _activeReactionMessageId = null);
+          }
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: provider.messages.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Say hello! 👋',
+                        style: TextStyle(color: Color(0xFF44445A), fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemCount: provider.messages.length,
+                      itemBuilder: (_, index) {
+                        final msg = provider.messages.reversed.elementAt(index);
+                        return _MessageBubble(
+                          message: msg,
+                          isReactionPickerOpen:
+                              _activeReactionMessageId == msg.id,
+                          onOpenReactionPicker: () {
+                            setState(() {
+                              _activeReactionMessageId =
+                                  _activeReactionMessageId == msg.id
+                                      ? null
+                                      : msg.id;
+                            });
+                          },
+                          onToggleReaction: (emoji) {
+                            final userId =
+                                context.read<AuthProvider>().user?.id;
+                            debugPrint(
+                              '[Reaction][UI] tray tap: emoji="$emoji" | '
+                              'msgId="${msg.id}" | userIdLen=${userId?.length ?? 0} '
+                              'userIdEmpty=${userId == null || userId.trim().isEmpty} | '
+                              'chatId="${provider.chatId}"',
+                            );
+                            provider.toggleReaction(
+                              msg.id,
+                              emoji,
+                              currentUserId: userId,
+                            );
+                            setState(() => _activeReactionMessageId = null);
+                          },
+                        );
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    itemCount: provider.messages.length,
-                    itemBuilder: (_, index) {
-                      final msg = provider.messages.reversed.elementAt(index);
-                      return _MessageBubble(
-                        message: msg,
-                        onToggleReaction: (emoji) =>
-                            provider.toggleReaction(msg.id, emoji),
-                      );
-                    },
-                  ),
-          ),
-          if (provider.partnerIsTyping)
-            const Padding(
-              padding: EdgeInsets.only(left: 16, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TypingIndicatorBubble(),
-              ),
             ),
-          _buildInputBar(provider),
-        ],
+            if (provider.partnerIsTyping)
+              const Padding(
+                padding: EdgeInsets.only(left: 16, bottom: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TypingIndicatorBubble(),
+                ),
+              ),
+            _buildInputBar(provider),
+          ],
+        ),
       ),
     );
   }
@@ -431,12 +468,18 @@ class _TypingIndicatorBubbleState extends State<TypingIndicatorBubble>
 
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
+  final bool isReactionPickerOpen;
+  final VoidCallback onOpenReactionPicker;
   final ValueChanged<String> onToggleReaction;
 
   const _MessageBubble({
     required this.message,
+    required this.isReactionPickerOpen,
+    required this.onOpenReactionPicker,
     required this.onToggleReaction,
   });
+
+  static const _quick = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
   @override
   Widget build(BuildContext context) {
@@ -467,51 +510,161 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment:
             message.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onLongPress: () => _showReactionPicker(context),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.65,
-              ),
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: message.isMe
-                    ? const LinearGradient(
-                        colors: [Color(0xFF6C63FF), Color(0xFF4B44CC)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: message.isMe ? null : const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(message.isMe ? 18 : 4),
-                  bottomRight: Radius.circular(message.isMe ? 4 : 18),
-                ),
-                boxShadow: message.isMe
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF6C63FF).setOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+          // Tray lives in layout flow (not Stack overflow). On web, negative
+          // Positioned hits above the Stack often don't receive taps — the
+          // scaffold dismiss gesture won and only closed the tray.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: message.isMe ? Alignment.topRight : Alignment.topLeft,
+            child: isReactionPickerOpen
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Align(
+                      alignment: message.isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.sizeOf(context).width - 40,
                         ),
-                      ]
-                    : null,
-                border: message.isMe
-                    ? null
-                    : Border.all(color: const Color(0xFF2E2E4E)),
-              ),
-              child: Text(
-                message.text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  height: 1.4,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF131320),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF2E2E4E)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.28),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: _quick.map((emoji) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    debugPrint(
+                                      '[Reaction][UI] emoji GestureDetector onTap: $emoji',
+                                    );
+                                    onToggleReaction(emoji);
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              GestureDetector(
+                onLongPress: onOpenReactionPicker,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.65,
+                  ),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: message.isMe
+                        ? const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF4B44CC)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: message.isMe ? null : const Color(0xFF1A1A2E),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(message.isMe ? 18 : 4),
+                      bottomRight: Radius.circular(message.isMe ? 4 : 18),
+                    ),
+                    boxShadow: message.isMe
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).setOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                    border: message.isMe
+                        ? null
+                        : Border.all(color: const Color(0xFF2E2E4E)),
+                  ),
+                  child: Text(
+                    message.text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              // Own messages: icon bottom-left. Others: bottom-right (half in / half out).
+              Positioned(
+                bottom: -8,
+                left: message.isMe ? -10 : null,
+                right: message.isMe ? null : -10,
+                child: GestureDetector(
+                  onTap: onOpenReactionPicker,
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 120),
+                    scale: isReactionPickerOpen ? 1.08 : 1.0,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF171727),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF2E2E4E)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.add_reaction_outlined,
+                        size: 14,
+                        color: Color(0xFFD7D7F8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           if (message.reactions.isNotEmpty)
             Wrap(
@@ -546,49 +699,6 @@ class _MessageBubble extends StatelessWidget {
             ),
           const SizedBox(height: 6),
         ],
-      ),
-    );
-  }
-
-  void _showReactionPicker(BuildContext context) {
-    const quick = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF12121C),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: quick
-              .map(
-                (emoji) => GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    onToggleReaction(emoji);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A2E),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF2E2E4E)),
-                    ),
-                    child: Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
       ),
     );
   }

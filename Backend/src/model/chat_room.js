@@ -42,7 +42,9 @@ class ChatRoom {
     const chat = this.rooms.get(chatId);
     if (!chat) return null;
 
-    const target = chat.messages.find((m) => m.id === messageId);
+    const target = chat.messages.find(
+      (m) => String(m.id) === String(messageId),
+    );
     if (!target) return null;
 
     const users = new Set(target.reactions[emoji] || []);

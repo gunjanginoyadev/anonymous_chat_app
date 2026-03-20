@@ -13,7 +13,6 @@ import 'router_refresh_notifier.dart';
 final GlobalKey<NavigatorState> appNavigatorKey =
     GlobalKey<NavigatorState>();
 
-/// Central route path constants for type-safe, scalable navigation.
 abstract final class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
