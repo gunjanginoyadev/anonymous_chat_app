@@ -2,15 +2,15 @@ const SocketEvents = require("../config/socket_events");
 
 const eventSchemas = {
   [SocketEvents.EnterWaitingRoom]: {
-    required: ["userId"],
+    required: [],
   },
 
   [SocketEvents.SendMessage]: {
-    required: ["chatId", "userId", "message"],
+    required: ["chatId", "message"],
   },
 
-  [SocketEvents.LeaveRoom]: {
-    required: ["chatId", "userId"],
+  [SocketEvents.Typing]: {
+    required: ["chatId", "isTyping"],
   },
 };
 
@@ -27,19 +27,34 @@ function validateSocketMessage(data) {
     return { valid: false, error: "Invalid event type" };
   }
 
-  if (!data.data || typeof data.data !== "object") {
+  const payload = data.data ?? {};
+  if (typeof payload !== "object" || Array.isArray(payload)) {
     return { valid: false, error: "Missing data payload" };
   }
 
   const { required } = eventSchemas[data.event];
 
   for (const field of required) {
-    if (!(field in data.data)) {
+    if (!(field in payload)) {
       return {
         valid: false,
         error: `Missing required field: ${field}`,
       };
     }
+  }
+
+  if (
+    data.event === SocketEvents.SendMessage &&
+    typeof payload.message !== "string"
+  ) {
+    return { valid: false, error: "message must be a string" };
+  }
+
+  if (
+    data.event === SocketEvents.Typing &&
+    typeof payload.isTyping !== "boolean"
+  ) {
+    return { valid: false, error: "isTyping must be a boolean" };
   }
 
   return { valid: true };
