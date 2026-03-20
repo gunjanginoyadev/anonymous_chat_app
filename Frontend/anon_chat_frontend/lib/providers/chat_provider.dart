@@ -42,6 +42,11 @@ class ChatProvider extends ChangeNotifier {
   String? get username => partnerUsername;
 
   void startChat(String token) {
+    if (token.trim().isEmpty) {
+      errorMessage = 'Missing auth token. Please login again.';
+      _notify();
+      return;
+    }
     print('Starting Chat flow...');
     status = ChatStatus.waiting;
     messages = [];
