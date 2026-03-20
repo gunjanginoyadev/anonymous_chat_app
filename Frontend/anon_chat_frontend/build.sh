@@ -7,5 +7,5 @@ flutter config --enable-web
 flutter pub get
 
 flutter build web --release \
---dart-define=API_BASE_URL=$API_BASE_URL \
---dart-define=WS_URL=$WS_URL
+--dart-define=API_BASE_URL=https://anonymous-chat-app-rvcy.onrender.com \
+--dart-define=WS_URL=wss://anonymous-chat-app-rvcy.onrender.com
