@@ -12,6 +12,7 @@ class ChatRoom {
     this.rooms.set(chatId, {
       user1,
       user2,
+      messages: [],
     });
 
     return chatId;
@@ -21,15 +22,84 @@ class ChatRoom {
     return this.rooms.get(chatId);
   }
 
+  addMessage(chatId, { senderId, message }) {
+    const chat = this.rooms.get(chatId);
+    if (!chat) return null;
+
+    const entry = {
+      id: uuidv4(),
+      senderId: senderId.toString(),
+      message,
+      timestamp: Date.now(),
+      reactions: {}, // { "🔥": ["userId1", "userId2"] }
+    };
+
+    chat.messages.push(entry);
+    return entry;
+  }
+
+  toggleReaction(chatId, messageId, userId, emoji) {
+    const chat = this.rooms.get(chatId);
+    if (!chat) return null;
+
+    const target = chat.messages.find((m) => m.id === messageId);
+    if (!target) return null;
+
+    const users = new Set(target.reactions[emoji] || []);
+    const normalizedUserId = userId.toString();
+    let action = "added";
+
+    if (users.has(normalizedUserId)) {
+      users.delete(normalizedUserId);
+      action = "removed";
+    } else {
+      users.add(normalizedUserId);
+    }
+
+    if (users.size === 0) {
+      delete target.reactions[emoji];
+    } else {
+      target.reactions[emoji] = Array.from(users);
+    }
+
+    return {
+      messageId: target.id,
+      emoji,
+      action,
+      userId: normalizedUserId,
+      reactions: target.reactions,
+    };
+  }
+
   hasUser(userId) {
     if (!userId) return false;
+    const target = userId.toString();
 
-    for (const chat of this.rooms.values()) {
+    for (const [chatId, chat] of this.rooms.entries()) {
       const user1Id = chat.user1?.user?.id?.toString();
       const user2Id = chat.user2?.user?.id?.toString();
-      const target = userId.toString();
+      const user1SocketOpen = chat.user1?.socket?.readyState === 1;
+      const user2SocketOpen = chat.user2?.socket?.readyState === 1;
 
-      if (user1Id === target || user2Id === target) {
+      // Self-heal stale rooms so users are not blocked from rejoining queue.
+      if (!user1SocketOpen && !user2SocketOpen) {
+        this.rooms.delete(chatId);
+        continue;
+      }
+
+      if (user1Id === target) {
+        if (!user1SocketOpen) {
+          this.rooms.delete(chatId);
+          continue;
+        }
+        return true;
+      }
+
+      if (user2Id === target) {
+        if (!user2SocketOpen) {
+          this.rooms.delete(chatId);
+          continue;
+        }
         return true;
       }
     }

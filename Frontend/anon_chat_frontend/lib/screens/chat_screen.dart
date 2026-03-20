@@ -181,7 +181,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemCount: provider.messages.length,
                     itemBuilder: (_, index) {
                       final msg = provider.messages.reversed.elementAt(index);
-                      return _MessageBubble(message: msg);
+                      return _MessageBubble(
+                        message: msg,
+                        onToggleReaction: (emoji) =>
+                            provider.toggleReaction(msg.id, emoji),
+                      );
                     },
                   ),
           ),
@@ -427,8 +431,12 @@ class _TypingIndicatorBubbleState extends State<TypingIndicatorBubble>
 
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
+  final ValueChanged<String> onToggleReaction;
 
-  const _MessageBubble({required this.message});
+  const _MessageBubble({
+    required this.message,
+    required this.onToggleReaction,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -455,47 +463,131 @@ class _MessageBubble extends StatelessWidget {
 
     return Align(
       alignment: message.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.65,
-        ),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: message.isMe
-              ? const LinearGradient(
-                  colors: [Color(0xFF6C63FF), Color(0xFF4B44CC)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: message.isMe ? null : const Color(0xFF1A1A2E),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(message.isMe ? 18 : 4),
-            bottomRight: Radius.circular(message.isMe ? 4 : 18),
+      child: Column(
+        crossAxisAlignment:
+            message.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onLongPress: () => _showReactionPicker(context),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.65,
+              ),
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: message.isMe
+                    ? const LinearGradient(
+                        colors: [Color(0xFF6C63FF), Color(0xFF4B44CC)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: message.isMe ? null : const Color(0xFF1A1A2E),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(message.isMe ? 18 : 4),
+                  bottomRight: Radius.circular(message.isMe ? 4 : 18),
+                ),
+                boxShadow: message.isMe
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6C63FF).setOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+                border: message.isMe
+                    ? null
+                    : Border.all(color: const Color(0xFF2E2E4E)),
+              ),
+              child: Text(
+                message.text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+            ),
           ),
-          boxShadow: message.isMe
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF6C63FF).setOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+          if (message.reactions.isNotEmpty)
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: message.reactions.entries
+                  .map(
+                    (entry) => GestureDetector(
+                      onTap: () => onToggleReaction(entry.key),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A2E),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFF2E2E4E)),
+                        ),
+                        child: Text(
+                          '${entry.key} ${entry.value.length}',
+                          style: const TextStyle(
+                            color: Color(0xFFD7D7F8),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
+
+  void _showReactionPicker(BuildContext context) {
+    const quick = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF12121C),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: quick
+              .map(
+                (emoji) => GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    onToggleReaction(emoji);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF2E2E4E)),
+                    ),
+                    child: Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
                   ),
-                ]
-              : null,
-          border: message.isMe
-              ? null
-              : Border.all(color: const Color(0xFF2E2E4E)),
-        ),
-        child: Text(
-          message.text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            height: 1.4,
-          ),
+                ),
+              )
+              .toList(),
         ),
       ),
     );

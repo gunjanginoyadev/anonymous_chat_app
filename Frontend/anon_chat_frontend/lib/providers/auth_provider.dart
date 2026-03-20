@@ -53,6 +53,33 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 
+  String _humanizeApiMessage(String? raw, {required String fallback}) {
+    final msg = (raw ?? '').trim();
+    if (msg.isEmpty) return fallback;
+
+    final lower = msg.toLowerCase();
+    if (lower.contains('incorrect password') || lower.contains('invalid password')) {
+      return 'That password does not match this account. Please try again.';
+    }
+    if (lower.contains('user not found') || lower.contains('email not found')) {
+      return 'No account was found with this email address.';
+    }
+    if (lower.contains('already exists') || lower.contains('email already')) {
+      return 'An account with this email already exists. Try signing in instead.';
+    }
+    if (lower.contains('invalid email')) {
+      return 'Please enter a valid email address.';
+    }
+    if (lower.contains('invalid credentials')) {
+      return 'Email or password is incorrect. Please try again.';
+    }
+    if (lower.contains('token') && lower.contains('expired')) {
+      return 'Your session expired. Please sign in again.';
+    }
+
+    return msg;
+  }
+
   Future<bool> login(String email, String password) async {
     status = AuthStatus.loading;
     errorMessage = null;
@@ -81,7 +108,10 @@ class AuthProvider extends ChangeNotifier {
         _notify();
         return true;
       } else {
-        errorMessage = result['message'] ?? 'Login failed. Please check your credentials.';
+        errorMessage = _humanizeApiMessage(
+          result['message']?.toString(),
+          fallback: 'Login failed. Please check your credentials.',
+        );
         status = AuthStatus.unauthenticated;
         _notify();
         return false;
@@ -120,7 +150,10 @@ class AuthProvider extends ChangeNotifier {
         _notify();
         return true;
       } else {
-        errorMessage = result['message'] ?? 'Registration failed. Please try again.';
+        errorMessage = _humanizeApiMessage(
+          result['message']?.toString(),
+          fallback: 'Registration failed. Please try again.',
+        );
         status = AuthStatus.unauthenticated;
         _notify();
         return false;
@@ -136,7 +169,10 @@ class AuthProvider extends ChangeNotifier {
       if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
         errorMessage = 'Connection timed out. Please check your internet.';
       } else if (e.response?.data != null && e.response?.data is Map) {
-        errorMessage = e.response?.data['message'] ?? 'Server error: ${e.response?.statusCode}';
+        errorMessage = _humanizeApiMessage(
+          e.response?.data['message']?.toString(),
+          fallback: 'Server error: ${e.response?.statusCode}',
+        );
       } else {
         errorMessage = 'Network error: ${e.message}';
       }

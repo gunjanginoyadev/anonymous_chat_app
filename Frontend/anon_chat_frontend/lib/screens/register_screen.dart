@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 _buildHeader(),
                 const SizedBox(height: 40),
-                _buildForm(auth, isLoading),
+                _buildForm(isLoading),
                 const SizedBox(height: 28),
                 _buildFooter(),
               ],
@@ -134,15 +134,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildForm(AuthProvider auth, bool isLoading) {
+  Widget _buildForm(bool isLoading) {
     return Form(
       key: _formKey,
       child: Column(
         children: [
-          if (auth.errorMessage != null) ...[
-            AuthErrorBanner(message: auth.errorMessage!),
-            const SizedBox(height: 20),
-          ],
           AuthTextField(
             label: 'YOUR NAME',
             hint: 'How should we call you?',

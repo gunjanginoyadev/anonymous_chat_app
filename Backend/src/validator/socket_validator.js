@@ -12,6 +12,10 @@ const eventSchemas = {
   [SocketEvents.Typing]: {
     required: ["chatId", "isTyping"],
   },
+
+  [SocketEvents.ToggleReaction]: {
+    required: ["chatId", "messageId", "emoji"],
+  },
 };
 
 function validateSocketMessage(data) {
@@ -55,6 +59,13 @@ function validateSocketMessage(data) {
     typeof payload.isTyping !== "boolean"
   ) {
     return { valid: false, error: "isTyping must be a boolean" };
+  }
+
+  if (
+    data.event === SocketEvents.ToggleReaction &&
+    (typeof payload.emoji !== "string" || payload.emoji.trim().length === 0)
+  ) {
+    return { valid: false, error: "emoji must be a non-empty string" };
   }
 
   return { valid: true };

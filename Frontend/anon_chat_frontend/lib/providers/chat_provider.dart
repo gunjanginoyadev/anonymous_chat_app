@@ -7,15 +7,32 @@ import '../core/constants/endpoints.dart';
 enum ChatStatus { idle, waiting, chatting }
 
 class ChatMessage {
+  final String id;
   final String text;
+  final String? senderId;
   final bool isMe;
   final DateTime timestamp;
+  final Map<String, Set<String>> reactions;
 
   ChatMessage({
+    required this.id,
     required this.text,
+    required this.senderId,
     required this.isMe,
     required this.timestamp,
+    Map<String, Set<String>>? reactions,
+  }) : reactions = reactions ?? {};
+}
+
+Map<String, Set<String>> _parseReactions(dynamic raw) {
+  final parsed = <String, Set<String>>{};
+  if (raw is! Map) return parsed;
+
+  raw.forEach((key, value) {
+    if (key is! String || value is! List) return;
+    parsed[key] = value.map((e) => e.toString()).toSet();
   });
+  return parsed;
 }
 
 class ChatProvider extends ChangeNotifier {
@@ -94,8 +111,14 @@ class ChatProvider extends ChangeNotifier {
       // case Endpoints.sendMessage: intentionally omitted.
 
       case Endpoints.messageReceived:
-        // This is the event the RECEIVER gets when the sender sends a message.
-        _addMessage(data['message'] as String? ?? '', false);
+        _upsertMessageFromPayload(data, isMe: false);
+        break;
+      case Endpoints.sendMessage:
+        _upsertMessageFromPayload(data, isMe: true);
+        break;
+
+      case Endpoints.messageReactionUpdated:
+        _applyReactionUpdate(data);
         break;
 
       case Endpoints.partnerLeft:
@@ -155,9 +178,51 @@ class ChatProvider extends ChangeNotifier {
     });
   }
 
+  void _upsertMessageFromPayload(Map<String, dynamic> data, {required bool isMe}) {
+    final messageId = data['messageId']?.toString();
+    final text = data['message']?.toString() ?? '';
+    if (text.trim().isEmpty) return;
+
+    // Backward compatibility: if backend payload does not include messageId yet,
+    // still show the message instead of dropping it.
+    if (messageId == null || messageId.isEmpty) {
+      _addMessage(text, isMe);
+      return;
+    }
+
+    final existingIndex = messages.indexWhere((m) => m.id == messageId);
+    final senderId = data['senderId']?.toString();
+    final timestampRaw = data['timestamp'];
+    final timestamp = timestampRaw is int
+        ? DateTime.fromMillisecondsSinceEpoch(timestampRaw)
+        : DateTime.now();
+
+    final newMessage = ChatMessage(
+      id: messageId,
+      text: text,
+      senderId: senderId,
+      isMe: isMe,
+      timestamp: timestamp,
+      reactions: _parseReactions(data['reactions']),
+    );
+
+    if (existingIndex >= 0) {
+      messages[existingIndex] = newMessage;
+    } else {
+      messages.add(newMessage);
+    }
+    _notify();
+  }
+
   void _addMessage(String text, bool isMe) {
     messages.add(
-      ChatMessage(text: text, isMe: isMe, timestamp: DateTime.now()),
+      ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        text: text,
+        senderId: null,
+        isMe: isMe,
+        timestamp: DateTime.now(),
+      ),
     );
     _notify();
   }
@@ -166,14 +231,39 @@ class ChatProvider extends ChangeNotifier {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty || chatId == null) return;
 
-    // Optimistically add to local list so the sender sees it immediately.
-    _addMessage(trimmedText, true);
-
-    // Send to server — the backend will forward to the receiver.
     _wsService.emit(Endpoints.sendMessage, {
       'chatId': chatId,
       'message': trimmedText,
     });
+  }
+
+  void toggleReaction(String messageId, String emoji) {
+    if (chatId == null || messageId.isEmpty || emoji.trim().isEmpty) return;
+    _wsService.emit(Endpoints.toggleReaction, {
+      'chatId': chatId,
+      'messageId': messageId,
+      'emoji': emoji,
+    });
+  }
+
+  void _applyReactionUpdate(Map<String, dynamic> data) {
+    final messageId = data['messageId']?.toString();
+    if (messageId == null) return;
+    final index = messages.indexWhere((m) => m.id == messageId);
+    if (index < 0) return;
+
+    final existing = messages[index];
+    final reactions = _parseReactions(data['reactions']);
+
+    messages[index] = ChatMessage(
+      id: existing.id,
+      text: existing.text,
+      senderId: existing.senderId,
+      isMe: existing.isMe,
+      timestamp: existing.timestamp,
+      reactions: reactions,
+    );
+    _notify();
   }
 
   void leaveChat() {
@@ -184,6 +274,11 @@ class ChatProvider extends ChangeNotifier {
     partnerUsername = null;
     partnerProfilePicture = null;
     partnerIsTyping = false;
+    _notify();
+  }
+
+  void clearError() {
+    errorMessage = null;
     _notify();
   }
 

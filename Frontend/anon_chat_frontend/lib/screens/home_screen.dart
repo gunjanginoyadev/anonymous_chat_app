@@ -95,7 +95,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildStartButton(BuildContext context) {
     final auth = context.read<AuthProvider>();
-    return GestureDetector(
+    return _HoverScale(
       onTap: () {
         final token = auth.user?.token ?? '';
         if (token.trim().isNotEmpty) {
@@ -178,6 +178,37 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HoverScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _HoverScale({required this.child, required this.onTap});
+
+  @override
+  State<_HoverScale> createState() => _HoverScaleState();
+}
+
+class _HoverScaleState extends State<_HoverScale> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          scale: _hovered ? 1.02 : 1.0,
+          child: widget.child,
+        ),
       ),
     );
   }
