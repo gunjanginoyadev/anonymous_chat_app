@@ -1,65 +1,90 @@
-# Anon Chat — Flutter App
+# Anon Chat — Flutter App 🚀
 
-Flutter application for **Anon Chat**: anonymous one-on-one real-time chat. Uses the project backend for auth (REST) and chat/matching (WebSocket).
+The official Flutter client for **Anon Chat**. This application provides a seamless, real-time anonymous chatting experience with a focus on high-performance and a premium user interface.
 
-## Getting started
+---
 
-### Prerequisites
+## ✨ Key Features
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) installed and on your `PATH`
-- Backend server running (see repo root or `Backend/README.md`)
+- **🌓 Dynamic UI** — Beautiful dark-themed interface with smooth transitions.
+- **🛡️ Secure Auth** — Integrated JWT authentication flow with automatic token refresh.
+- **⚡ WebSocket Chat** — Low-latency, real-time messaging using `web_socket_channel`.
+- **🛠️ Robust Networking** — Powered by `Dio` for structured API requests.
+- **🔄 State Management** — Clean and predictable state handling with `Provider`.
 
-### Install dependencies
+---
+
+## 🚀 Getting Started
+
+### 📋 Prerequisites
+
+- **Flutter SDK:** [Install Flutter](https://docs.flutter.dev/get-started/install) (Stable channel recommended).
+- **Backend Service:** Ensure the project backend is running (Refer to `Backend/README.md`).
+
+### ⚙️ Configuration
+
+Before running the app, you must configure the backend connection settings.
+
+1. Locate **`lib/core/constants/api_constants.dart`**.
+2. Update the following values:
+
+| Environment | Base URL (REST API) | WS URL (WebSocket) |
+| :--- | :--- | :--- |
+| **Local (Emulator)** | `http://10.0.2.2:3000` | `ws://10.0.2.2:3000` |
+| **Local (Physical)** | `http://<YOUR_LAN_IP>:3000` | `ws://<YOUR_LAN_IP>:3000` |
+| **Production** | Your deployed API URL | Your deployed WSS URL |
+
+---
+
+## 🛠️ Development
+
+### 1. Install Dependencies
 
 ```bash
 flutter pub get
 ```
 
-### Configure backend URL
-
-Edit **`lib/core/constants/api_constants.dart`**:
-
-- **Local backend (e.g. emulator/device on same network):**  
-  - `baseUrl` = `http://<YOUR_IP>:3000`  
-  - `wsUrl` = `ws://<YOUR_IP>:3000`  
-  Use your computer’s local IP (e.g. `192.168.1.40`) so the device can reach the server.
-
-- **Deployed backend:**  
-  Set `baseUrl` and `wsUrl` to your server’s base URL and WebSocket URL (e.g. `https://...` and `wss://...`).
-
-### Run the app
+### 2. Run the App
 
 ```bash
+# General run
 flutter run
-```
 
-Choose a target (Chrome, Android, iOS, etc.). For web:
-
-```bash
+# Run specifically on Chrome
 flutter run -d chrome
 ```
 
-## Project structure
+### 3. Build Patterns
 
-| Path | Description |
-|------|-------------|
-| `lib/main.dart` | App entry, theme, routes |
-| `lib/core/` | Theme, colors, `api_constants.dart`, `endpoints.dart` |
-| `lib/providers/` | `AuthProvider`, `ChatProvider` (state) |
-| `lib/screens/` | Login, Register, Home, Waiting, Chat |
-| `lib/services/` | API calls, `ChatWebSocketService` |
-| `lib/widgets/` | Shared UI (e.g. auth forms) |
+- **Build Web:** `flutter build web --release`
 
-## Main dependencies
+---
 
-- **provider** — State management
-- **dio** — HTTP client for auth API
-- **web_socket_channel** — WebSocket for chat
-- **google_fonts** — Typography
-- **uuid** — Identifiers
+## 📂 Architecture Overview
 
-## Flutter resources
+| Directory | Responsibility |
+| :--- | :--- |
+| `lib/main.dart` | Application entry point, theme configuration, and routing. |
+| `lib/core/` | Global constants, theme definitions, and API endpoints. |
+| `lib/providers/` | State management (e.g., `AuthProvider`, `ChatProvider`). |
+| `lib/screens/` | Feature-specific views (Auth, Matching, Chat). |
+| `lib/services/` | Core business logic and external service integrations. |
+| `lib/widgets/` | Reusable UI components and layout helpers. |
 
-- [Flutter documentation](https://docs.flutter.dev/)
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
+
+## 📦 Main Dependencies
+
+- **[provider](https://pub.dev/packages/provider)** — State management.
+- **[dio](https://pub.dev/packages/dio)** — HTTP client for REST API.
+- **[web_socket_channel](https://pub.dev/packages/web_socket_channel)** — Real-time communication.
+- **[google_fonts](https://pub.dev/packages/google_fonts)** — High-quality typography.
+- **[uuid](https://pub.dev/packages/uuid)** — Unique identifier generation.
+
+---
+
+## 📚 Resources
+
+- [Official Flutter Documentation](https://docs.flutter.dev/)
+- [Flutter Cookbook](https://docs.flutter.dev/cookbook)
+- [Codelabs: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
