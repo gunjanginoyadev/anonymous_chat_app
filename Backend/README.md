@@ -1,111 +1,156 @@
-# Anon Chat — Backend
+# Anon Chat — Backend ⚡
 
-Node.js backend for the Anon Chat app: REST API for auth and a WebSocket server for real-time matching and chat.
+The Node.js engine powering the Anon Chat application. This service manages user authentication via REST API and handles real-time user matching and messaging through a secure WebSocket server.
 
-## Tech Stack
+---
 
-- **Runtime:** Node.js
+## 🚀 Tech Stack
+
+- **Runtime:** Node.js (v18+)
 - **Framework:** Express 5
-- **Database:** MongoDB (Mongoose)
-- **Auth:** JWT (access + refresh tokens)
-- **Realtime:** WebSocket (`ws`)
+- **Database:** MongoDB with Mongoose ODM
+- **Real-time:** Native `ws` module
+- **Authentication:** JWT (JSON Web Tokens) with Refresh Token support
 
-## Setup
+## 🛠️ Setup & Installation
 
 ### Prerequisites
 
-- Node.js (v18+ recommended)
-- MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+- Node.js installed on your machine.
+- A running MongoDB instance (Local or [Atlas](https://www.mongodb.com/cloud/atlas)).
 
-### Install & run
+### Quick Start
 
-```bash
-npm install
-cp .env.sample .env
-# Edit .env with your values (see below)
-npm run dev    # development (nodemon)
-npm start      # production
-```
+1. **Install Dependencies:**
 
-Server listens on `PORT` from `.env` (default 3000). HTTP and WebSocket use the same port.
+   ```bash
+   npm install
+   ```
 
-## Environment Variables
+2. **Environment Configuration:**
 
-Create a `.env` file (see `.env.sample`):
+   ```bash
+   cp .env.sample .env
+   ```
 
-| Variable | Description |
-| -------- | ----------- |
-| `PORT` | Server port (e.g. `3000`) |
-| `JET_SECRET` | Secret for signing JWT access tokens |
-| `JET_REFRESH_TOKEN_SECRET` | Secret for signing JWT refresh tokens |
-| `MONGODB_URI` | MongoDB connection string (e.g. `mongodb://localhost:27017/anon_chat`) |
+   *Edit `.env` and provide your specific configuration values.*
 
-## REST API
+3. **Run the Server:**
+   - **Development:** `npm run dev` (uses nodemon)
+   - **Production:** `npm start`
 
-Base path: `/api`.
+---
 
-### Auth — `/api/auth`
+## 🔐 Environment Variables
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PORT` | Port number for the server | `3000` |
+| `JET_SECRET` | Secret key for Access Tokens | - |
+| `JET_REFRESH_TOKEN_SECRET` | Secret key for Refresh Tokens | - |
+| `MONGODB_URI` | Connection string for MongoDB | - |
+
+---
+
+## 🌐 API Reference
+
+### Authentication (`/api/auth`)
 
 | Method | Endpoint | Description |
-| ------ | -------- | ----------- |
-| POST | `/register` | Register (body: username, password, etc. as defined in controller) |
-| POST | `/login` | Login (returns access + refresh tokens) |
-| POST | `/refresh-token` | Get new access token using refresh token |
+| :--- | :--- | :--- |
+| `POST` | `/register` | Create a new user account |
+| `POST` | `/login` | Authenticate and receive tokens |
+| `POST` | `/refresh-token` | Obtain a new access token using a refresh token |
 
-Requests/responses are JSON. Include access token in `Authorization: Bearer <token>` where required.
+---
 
-## WebSocket
+## 🔌 WebSocket Implementation
 
-Connect to the same host and port as the HTTP server (e.g. `ws://localhost:3000`).
+The server uses a single port for both HTTP and WebSocket traffic.
 
-### Connection
+### 🛡️ Authentication Flow
 
-- For protected events (e.g. entering waiting room), the client must authenticate (e.g. send token in first message or query). The server associates the connection with a user (`userId`, `username`).
+The WebSocket connection is **secured**. Upon connection, the server expects a JWT token:
 
-### Events (client → server)
+1. **Header-based:** `Authorization: Bearer <token>` (Recommended for native clients).
+2. **Query-based:** `ws://host:port?token=<token>` (Used for web/browser clients).
 
-Send JSON messages with an `event` field (and optional `data`).
+*Connections without a valid token are immediately closed with code `1008`.*
 
-| Event | Description |
-| ----- | ----------- |
-| `enter-waiting-room` | Join the matching queue (requires authenticated user) |
-| `send-message` | Send a chat message (when in a chat room; include message content in `data`) |
+### 📤 Client-to-Server Events
 
-### Events (server → client)
+Sent as JSON with `event` and `data` fields.
 
-Server sends JSON with `event` and optional `data` / `message`.
+| Event | Data Payload | Description |
+| :--- | :--- | :--- |
+| `enter-waiting-room` | - | Join the global matching queue. |
+| `send-message` | `{ "chatId": "...", "message": "..." }` | Send a message to your matched partner. |
+| `typing` | `{ "chatId": "...", "isTyping": true }` | Notify your partner that you are typing. |
+| `toggle-reaction` | `{ "chatId": "...", "messageId": "...", "emoji": "..." }` | Add or remove an emoji reaction to a message. |
 
-| Event | Description |
-| ----- | ----------- |
-| `in-waiting-room` | Confirmed in waiting room, waiting for a partner |
-| `in-chat` | Matched; `data` includes `chatId` and `partner` (userId, username) |
-| `message-received` | Incoming message from partner |
-| `partner-left` | Partner left the chat |
-| `error` | Error; `message` contains description |
+### 📥 Server-to-Client Events
 
-## Project Structure
+| Event | Payload | Description |
+| :--- | :--- | :--- |
+| `in-waiting-room` | - | Confirmed entry into the queue. |
+| `in-chat` | `{ "chatId": "...", "partner": { "id": "...", "username": "...", "profilePicture": "..." } }` | Success matching with a partner. |
+| `send-message` | `{ "chatId": "...", "messageId": "...", "senderId": "...", "message": "...", "timestamp": "...", "reactions": [] }` | Sent back to the sender as confirmation. |
+| `message-received` | `{ "chatId": "...", "messageId": "...", "senderId": "...", "message": "...", "timestamp": "...", "reactions": [] }` | New message from your partner. |
+| `typing` | `{ "chatId": "...", "isTyping": true }` | Notification that your partner is typing. |
+| `message-reaction-updated` | `{ "chatId": "...", "messageId": "...", "emoji": "...", "userId": "...", "action": "added/removed", "reactions": [...] }` | Broadcast when a reaction is updated. |
+| `partner-left` | - | Notification that the partner has disconnected. |
+| `error` | `{ "message": "..." }` | Generic error reporting. |
 
+---
+
+## 📂 Project Architecture
+
+The backend follows a modular directory structure for better maintainability:
+
+- `src/config/`: App-wide configurations (DB, Socket types).
+- `src/controllers/`: Request handling logic.
+- `src/helper/`: Utility functions (Token generation, Response formatting).
+- `src/model/`: Mongoose schemas and data models.
+- `src/repository/`: Data access layer (DB operations).
+- `src/routes/`: REST API route definitions.
+- `src/services/`: Core business logic.
+- `src/socket/`: WebSocket server, routers, and event handlers.
+- `src/validator/`: Input and socket message validation.
+
+---
+
+## 🏗️ Architecture & Scaling Strategy
+
+This project is built with **modern backend engineering principles**, making it ready for horizontal scaling with minimal refactoring.
+
+### 🌐 System Architecture
+
+The application is designed to be **stateless** wherever possible, allowing multiple instances to run behind a Load Balancer.
+
+```mermaid
+graph LR
+    Client --> LB[Load Balancer]
+    LB --> Node[Node.js Instances]
+    Node <--> Redis{Redis}
+    Node --> Mongo[(MongoDB)]
+    
+    subgraph "Scaling Layer"
+    Redis -- "Pub/Sub" --- Node
+    Redis -- "Shared State" --- Node
+    end
 ```
-Backend/
-├── src/
-│   ├── config/       # env, db, socket_events
-│   ├── controllers/  # auth_controller
-│   ├── helper/       # token_generator, api_response
-│   ├── model/        # user_model, chat_room, waiting_queue
-│   ├── repository/   # user_repository
-│   ├── routes/       # apis, auth_routes
-│   ├── services/     # auth_service
-│   ├── socket/       # socket_server, event_router, event_handler
-│   ├── validator/    # socket_validator
-│   ├── app.js        # Express app
-│   └── server.js     # HTTP server + WebSocket attach
-├── .env.sample
-├── package.json
-└── README.md
-```
 
-## Scripts
+### 🚀 Scalability Roadmap
 
-- `npm run dev` — Start with nodemon (auto-restart on file changes)
-- `npm start` — Start with `node src/server.js`
-- `npm test` — Placeholder (no tests defined yet)
+- **Horizontal Scaling**: By introducing **Redis Pub/Sub**, message events can be broadcasted across different server nodes, ensuring that a user on *Instance A* can chat seamlessly with a user on *Instance B*.
+- **Distributed State**: The current in-memory `WaitingQueue` can be migrated to **Redis Sets or Lists**. This ensures a global matching queue that remains consistent across all vertical and horizontal scaling operations.
+- **Message Persistence**: While currently ephemeral, integrating a **Message Persistence Layer** in MongoDB would enable chat history and session recovery, transforming the demo into a production-ready product.
+- **Microservices Ready**: The decoupled nature of the Auth (REST) and Chat (Socket) layers allows for independent scaling of these components as separate services.
+
+---
+
+## 📜 Scripts
+
+- `npm start`: Standard production start.
+- `npm run dev`: Development mode with hot-reloading.
+- `npm test`: Run the test suite (currently a placeholder).

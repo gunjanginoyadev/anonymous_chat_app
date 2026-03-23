@@ -19,6 +19,20 @@ class UserRepository {
             { $set: { refreshToken } }
         );
     }
+
+    async updateVerificationStatus(verified, email) {
+        return await User.updateOne(
+            { email: email },
+            { $set: { verified } }
+        );
+    }
+
+    async updatePasswordByEmail(email, password) {
+        return await User.updateOne(
+            { email: email },
+            { $set: { password } }
+        );
+    }
 }
 
 module.exports = new UserRepository();

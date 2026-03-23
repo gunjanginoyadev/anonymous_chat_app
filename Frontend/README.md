@@ -1,70 +1,49 @@
-# Anon Chat — Frontend
+# Anon Chat — Frontend 📱
 
-Flutter client for the Anon Chat app. Supports mobile and web; uses the backend REST API for auth and WebSockets for real-time matching and chat.
+The user-facing mobile and web application for Anon Chat, built with Flutter. This project delivers a premium, dark-themed experience for real-time anonymous conversations.
 
-## Repository layout
+---
 
-The Flutter app lives in **`anon_chat_frontend/`**. All setup and run commands below are from that directory.
+## 📂 Repository Structure
 
-```
+The actual Flutter project is contained within the `anon_chat_frontend/` directory.
+
+```text
 Frontend/
-├── README.md              # This file
-└── anon_chat_frontend/    # Flutter app
+├── README.md               # This overview
+└── anon_chat_frontend/     # Core Flutter Application
     ├── lib/
-    │   ├── core/          # Theme, colors, endpoints, API constants
-    │   ├── providers/     # Auth & chat state (Provider)
-    │   ├── screens/       # Login, Register, Home, Waiting, Chat
-    │   ├── services/      # API client, WebSocket chat service
-    │   └── widgets/       # Shared UI (e.g. auth forms)
-    ├── pubspec.yaml
-    └── README.md          # App-level setup & run
+    │   ├── core/           # Design system tokens and API config
+    │   ├── providers/      # Application state management (Provider)
+    │   ├── screens/        # UI Views (Login, Chat, etc.)
+    │   ├── services/       # Network logic (Dio & WebSockets)
+    │   └── widgets/        # Reusable UI components
+    └── README.md           # Detailed App Setup & Run guides
 ```
 
-## Prerequisites
+## 🛠️ Tech Stack & Features
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (stable channel)
-- Backend running and reachable (local or deployed)
+- **Framework:** Flutter 3.x (Stable)
+- **State Management:** Provider for scalable state handling.
+- **Network Layer:** Dio for robust REST API interaction.
+- **Real-time:** `web_socket_channel` for low-latency chat.
+- **Styling:** Premium Dark Theme with `google_fonts` (Outfit/Inter).
 
-## Quick start
+## 🚀 Quick Start
 
-```bash
-cd anon_chat_frontend
-flutter pub get
-flutter run
-```
+To get the app running on your device or emulator:
 
-Pick a device (Chrome, Android, iOS, etc.) when prompted. For local backend, set the base URL and WebSocket URL in the app (see **Config** below).
+1. **Navigate to the app directory:**
+   ```bash
+   cd anon_chat_frontend
+   ```
+2. **Install dependencies:**
+   ```bash
+   flutter pub get
+   ```
+3. **Run the application:**
+   ```bash
+   flutter run
+   ```
 
-## Config (backend URL)
-
-The app talks to the backend via:
-
-- **REST:** `ApiConstants.baseUrl`  
-- **WebSocket:** `ApiConstants.wsUrl`
-
-Edit **`lib/core/constants/api_constants.dart`**:
-
-- **Local backend:**  
-  `baseUrl = 'http://<your-ip>:3000'`  
-  `wsUrl = 'ws://<your-ip>:3000'`  
-  (Use your machine’s LAN IP for a physical device.)
-
-- **Deployed backend:**  
-  Set `baseUrl` and `wsUrl` to your backend’s HTTPS and WSS URLs.
-
-## Features
-
-- **Auth:** Register, login, JWT refresh
-- **Home:** Navigate to waiting room or logout
-- **Waiting room:** Join queue and get matched with a random user
-- **Chat:** Real-time one-on-one messaging; partner leave notification
-
-## Tech stack
-
-- Flutter 3.x
-- **State:** Provider
-- **HTTP:** Dio
-- **WebSocket:** web_socket_channel
-- **Fonts:** google_fonts
-
-For detailed setup, run options, and project structure, see **[anon_chat_frontend/README.md](anon_chat_frontend/README.md)**.
+*For detailed configuration, including how to point the app to your backend server, please refer to the **[App-level README](anon_chat_frontend/README.md)**.*
