@@ -1,0 +1,47 @@
+# ── Dependencies ──
+node_modules/
+
+# ── Environment / secrets ──
+.env
+.env.local
+.env.*.local
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ── IDE / editor ──
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ── Logs ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Build output ──
+dist/
+build/
+coverage/
+
+# ── Flutter / Dart ──
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+app.*.symbols
+app.*.map.json

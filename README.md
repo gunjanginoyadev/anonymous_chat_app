@@ -1,71 +1,77 @@
-# Anon Chat
+# Anon Chat 🚀
 
-A real-time anonymous chat application that pairs users in one-on-one conversations. Users register and log in, then join a waiting room to be matched with a random stranger for a private chat over WebSockets.
+[![Node.js Backend](https://img.shields.io/badge/Backend-Node.js-green)](Backend/)
+[![Flutter Frontend](https://img.shields.io/badge/Frontend-Flutter-blue)](Frontend/)
+<!-- [![License: ISC](https://img.shields.io/badge/License-ISC-yellow.svg)](https://opensource.org/licenses/ISC) -->
 
-## Features
+A premium, real-time anonymous chat application that pairs users in instant one-on-one conversations. Experience seamless communication with a focus on simplicity and privacy.
 
-- **User authentication** — Register and login with JWT (access + refresh tokens)
-- **Waiting room** — Join a queue and get matched with another user automatically
-- **Real-time chat** — One-on-one messaging over WebSockets
-- **Anonymous pairing** — Chat with a partner identified only by username (no personal data shared)
-- **Partner leave handling** — Notified when the other user leaves; can re-join the waiting room
+---
 
-## Tech Stack
+## ✨ Features
 
-| Layer    | Technology        |
-| -------- | ------------------ |
-| Frontend | Flutter (mobile & web) |
-| Backend  | Node.js, Express   |
-| Realtime | WebSocket (ws)     |
-| Database | MongoDB (Mongoose) |
-| Auth     | JWT (access + refresh) |
+- **🔐 Secure Authentication** — Robust registration and login system utilizing JWT with Access and Refresh tokens for a secure session.
+- **🕒 Intelligent Waiting Room** — An automated queue system that matches you with another active user for a private chat.
+- **⚡ Real-time Messaging** — Instant, low-latency communication powered by WebSockets.
+- **🎭 Complete Anonymity** — Connect with strangers safely. Your identity is protected, and you're only identified by your chosen username.
+- **🔄 Session Management** — Stay informed with real-time notifications when a partner leaves, and easily re-join the matching pool.
+- **📱 Cross-Platform** — Beautifully crafted Flutter frontend for and Web with a dark-themed premium UI.
 
-## Project Structure
+## 🛠️ Tech Stack
 
-```
+| Layer | Technology | Key Libraries |
+| :--- | :--- | :--- |
+| **Frontend** | Flutter | Provider, Dio, web_socket_channel |
+| **Backend** | Node.js (Express) | Mongoose, Socket.io (ws implementation) |
+| **Real-time** | WebSocket (ws) | Native `ws` module for performance |
+| **Database** | MongoDB | Mongoose ODM |
+| **Security** | JWT | `jsonwebtoken` for stateless auth |
+
+## 📂 Project Structure
+
+```text
 Anon Chat/
 ├── Backend/                 # Node.js API + WebSocket server
 │   ├── src/
-│   │   ├── config/          # DB, env, socket events
-│   │   ├── controllers/     # Auth controller
-│   │   ├── model/           # User, ChatRoom, WaitingQueue
-│   │   ├── routes/          # REST API routes
-│   │   ├── socket/          # WebSocket server & event handling
+│   │   ├── config/          # Database & Socket event configurations
+│   │   ├── controllers/     # Authentication & User logic
+│   │   ├── model/           # Data schemas (User, ChatRoom, Queue)
+│   │   ├── socket/          # WebSocket routing & event handlers
 │   │   └── ...
-│   └── README.md
+│   └── README.md            # Detailed Backend Documentation
 ├── Frontend/
-│   └── anon_chat_frontend/  # Flutter app
+│   └── anon_chat_frontend/  # Flutter Application
 │       ├── lib/
-│       │   ├── core/        # Theme, constants, endpoints
-│       │   ├── providers/   # Auth & chat state
-│       │   ├── screens/    # Login, Register, Home, Waiting, Chat
-│       │   ├── services/   # WebSocket & API client
-│       │   └── widgets/
-│       └── README.md
-└── README.md                # This file
+│       │   ├── core/        # Theme, Constants, API Endpoints
+│       │   ├── providers/   # State Management (Auth & Chat)
+│       │   ├── screens/     # Premium UI Screens
+│       │   ├── services/    # WebSocket & REST API Clients
+│       │   └── ...
+│       └── README.md        # Detailed Frontend Documentation
+└── README.md                # Project Overview (This file)
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js** (v18+ recommended) and **npm**
-- **MongoDB** (local or Atlas)
-- **Flutter** SDK (for the frontend)
+- **Node.js** (v18+) & **npm**
+- **MongoDB** (Local or Atlas)
+- **Flutter SDK** (Stable channel)
 
-### 1. Backend
+### 1. Backend Setup
 
 ```bash
 cd Backend
-cp .env.sample .env
-# Edit .env with your PORT, JWT secrets, and MONGODB_URI
 npm install
+cp .env.sample .env
+# Update .env with your Port, Secrets, and MONGODB_URI
 npm run dev
 ```
 
-Server runs at `http://localhost:3000` (or your `PORT`). See [Backend/README.md](Backend/README.md) for API and WebSocket details.
+*The server will run at `http://localhost:3000`. Detailed API docs are in the [Backend README](Backend/README.md).*
 
-### 2. Frontend
+### 2. Frontend Setup
 
 ```bash
 cd Frontend/anon_chat_frontend
@@ -73,25 +79,47 @@ flutter pub get
 flutter run
 ```
 
-Configure the backend base URL in the app (e.g. in `lib/core/constants/` or environment) to point to your backend. See [Frontend/anon_chat_frontend/README.md](Frontend/anon_chat_frontend/README.md) for setup and run options.
+*Ensure you configure the `baseUrl` in `lib/core/constants/api_constants.dart` to match your backend address.*
 
-### 3. Environment
+## 🏗️ Architecture & Scaling
 
-Backend needs a `.env` (use `.env.sample` as template):
+While this version is optimized for a single-instance demo, the architecture is designed with **horizontal scalability** in mind.
 
-- `PORT` — Server port (e.g. 3000)
-- `JET_SECRET` — JWT access token secret
-- `JET_REFRESH_TOKEN_SECRET` — JWT refresh token secret  
-- `MONGODB_URI` — MongoDB connection string (e.g. `mongodb://localhost:27017/anon_chat`)
+### System Architecture
 
-## API Overview
+```mermaid
+graph TD
+    subgraph Clients
+        WC[Web Client]
+        MC[Mobile Client]
+    end
 
-- `POST /api/auth/register` — Register
-- `POST /api/auth/login` — Login
-- `POST /api/auth/refresh-token` — Refresh access token
+    subgraph "Application Layer"
+        LB[Load Balancer]
+        NI1[Node.js Instance 1]
+        NI2[Node.js Instance 2]
+    end
 
-Chat and matching are handled over **WebSocket** (same host/port as the HTTP server). Events include: enter waiting room, in-chat, send-message, message-received, partner-left.
+    subgraph "State & Persistence"
+        Redis[(Redis Pub/Sub & Queue)]
+        DB[(MongoDB)]
+    end
 
-## License
+    WC & MC --> LB
+    LB --> NI1 & NI2
+    NI1 & NI2 <--> Redis
+    NI1 & NI2 --> DB
+```
 
-ISC
+### Scaling Strategy (Future-Proofing)
+
+To handle thousands of concurrent users, the following enhancements can be implemented:
+
+- **Redis Pub/Sub**: Synchronize messages across multiple Node.js instances.
+- **Shared State**: Move the `WaitingQueue` and active `ChatRooms` from in-memory to Redis for cross-server consistency.
+- **Message Persistence**: Store chat history in MongoDB for session recovery and long-term storage.
+- **Global Load Balancing**: Distribute traffic across different geographical regions.
+
+## 📄 License
+
+This project is licensed under the **ISC License**.

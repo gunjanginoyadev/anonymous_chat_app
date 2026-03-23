@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+  bool _registered = false;
 
   @override
   void dispose() {
@@ -33,11 +34,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    await auth.register(
+    final success = await auth.register(
       _nameCtrl.text.trim(),
       _emailCtrl.text.trim(),
       _passwordCtrl.text,
     );
+    if (success && mounted) {
+      setState(() => _registered = true);
+    }
   }
 
   @override
@@ -57,7 +61,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 _buildHeader(),
                 const SizedBox(height: 40),
-                _buildForm(isLoading),
+                if (_registered)
+                  _buildSuccessCard(auth)
+                else
+                  _buildForm(isLoading),
                 const SizedBox(height: 28),
                 _buildFooter(),
               ],
@@ -207,6 +214,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSuccessCard(AuthProvider auth) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.primary.setOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.setOpacity(0.2),
+                      AppColors.secondary.setOpacity(0.2),
+                    ],
+                  ),
+                ),
+                child: const Icon(
+                  Icons.mark_email_read_rounded,
+                  color: AppColors.secondary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Verify your email',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                auth.registerSuccessMessage ??
+                    'We sent a verification link to your email. Please verify before signing in.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        GradientButton(
+          label: 'Go to Sign In',
+          onTap: () {
+            auth.clearRegisterSuccess();
+            context.go(AppRoutes.login);
+          },
+        ),
+      ],
     );
   }
 

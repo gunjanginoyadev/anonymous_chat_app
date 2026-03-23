@@ -32,6 +32,19 @@ class _LoginScreenState extends State<LoginScreen> {
     await auth.login(_emailCtrl.text.trim(), _passwordCtrl.text);
   }
 
+  bool get _isUnverifiedError {
+    final msg = context.read<AuthProvider>().errorMessage?.toLowerCase() ?? '';
+    return msg.contains('verify your email') || msg.contains('email not verified');
+  }
+
+  Future<void> _resendVerification() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) return;
+    final auth = context.read<AuthProvider>();
+    auth.clearError();
+    await auth.resendVerificationEmail(email);
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -50,6 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildHeader(),
                 const SizedBox(height: 40),
                 _buildForm(isLoading),
+                if (auth.resendMessage != null) ...[
+                  const SizedBox(height: 16),
+                  _buildResendBanner(auth),
+                ],
                 const SizedBox(height: 28),
                 _buildFooter(),
               ],
@@ -160,11 +177,71 @@ class _LoginScreenState extends State<LoginScreen> {
               return null;
             },
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: () => context.go(AppRoutes.forgotPassword),
+              child: const Text(
+                'Forgot password?',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           GradientButton(
             label: 'Sign In',
             onTap: _submit,
             isLoading: isLoading,
+          ),
+          if (_isUnverifiedError) ...[
+            const SizedBox(height: 14),
+            Center(
+              child: GestureDetector(
+                onTap: _resendVerification,
+                child: const Text(
+                  'Resend verification email',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResendBanner(AuthProvider auth) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.setOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.mark_email_read_rounded,
+            color: AppColors.secondary,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              auth.resendMessage!,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
           ),
         ],
       ),
